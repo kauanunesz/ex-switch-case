@@ -1,10 +1,6 @@
--- Script de Criação do Banco de Dados para Oficina de Manutenção de Motos
--- Atividade: Sistema de Manutenção de Motos em PHP (Switch Case)
-
 CREATE DATABASE IF NOT EXISTS `oficina_motos` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `oficina_motos`;
 
--- 1. Tabela de Cadastro de Clientes (Verde)
 CREATE TABLE IF NOT EXISTS `clientes` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `nome` VARCHAR(100) NOT NULL,
@@ -18,7 +14,6 @@ CREATE TABLE IF NOT EXISTS `clientes` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 2. Tabela de Cadastro de Produtos para Motos (Azul)
 CREATE TABLE IF NOT EXISTS `produtos` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `codigo_sku` VARCHAR(30) UNIQUE NOT NULL,
@@ -31,7 +26,6 @@ CREATE TABLE IF NOT EXISTS `produtos` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 3. Tabela de Relatório de Vendas / Ordens de Serviço (Laranja)
 CREATE TABLE IF NOT EXISTS `vendas` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `numero_os` VARCHAR(20) NOT NULL,
@@ -46,7 +40,6 @@ CREATE TABLE IF NOT EXISTS `vendas` (
     FOREIGN KEY (`produto_id`) REFERENCES `produtos`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Inserção de Dados Demonstrativos Iniciais (Oficina de Motos)
 INSERT INTO `clientes` (`nome`, `cpf`, `telefone`, `email`, `modelo_moto`, `placa_moto`, `ano_moto`, `observacoes`) VALUES
 ('Carlos Eduardo Silva', '123.456.789-00', '(11) 98765-4321', 'carlos.silva@email.com', 'Honda CG 160 Titan', 'ABC-1D23', '2022', 'Revisão periódica dos 10.000km'),
 ('Mariana Oliveira Rocha', '987.654.321-11', '(11) 91234-5678', 'mariana.rocha@email.com', 'Yamaha Fazer FZ25', 'XYZ-9K88', '2023', 'Troca de óleo e alinhamento'),

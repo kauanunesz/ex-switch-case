@@ -1,51 +1,43 @@
 <?php
-// Configuração de Conexão com o Banco de Dados (MySQL com Fallback SQLite)
+// Configuração de Conexão com o Banco de Dados (MySQL via MySQLi)
 
 function getDBConnection() {
-    static $pdo = null;
-    if ($pdo !== null) {
-        return $pdo;
+    static $conn = null;
+    if ($conn !== null) {
+        return $conn;
     }
 
-    $host = '127.0.0.1';
-    $dbName = 'oficina_motos';
-    $user = 'root';
-    $pass = '';
+    $host = 'localhost';$dbName = 'oficina_motos';
+    $user = 'root';$pass = 'admin';
+
+    // Desativa o relatório de erros padrão e ativa exceções no MySQLi
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
     try {
-        // Tenta conectar ao MySQL local (XAMPP / WampServer)
-        $pdo = new PDO("mysql:host=$host;charset=utf8mb4", $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-        ]);
-        
+        // Conecta ao servidor MySQL local (sem especificar o banco de dados inicialmente)
+        $conn = new mysqli($host,$user, $pass);$conn->set_charset('utf8mb4');
+
         // Cria o banco de dados se não existir
-        $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-        $pdo->exec("USE `$dbName` ");
-    } catch (PDOException $e) {
-        // Se o MySQL falhar, usa SQLite local como fallback automático de desenvolvimento
-        $sqliteFile = __DIR__ . '/oficina_motos.db';
-        $pdo = new PDO("sqlite:" . $sqliteFile, null, null, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-        ]);
+        $sqlCreateDB = "CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci";
+        $conn->query($sqlCreateDB);
+
+        // Seleciona o banco de dados para uso
+        $conn->select_db($dbName);
+
+    } catch (mysqli_sql_exception $e) {
+        die("Erro ao conectar ao banco de dados MySQL: " . $e->getMessage());
     }
 
     // Inicializa as tabelas se ainda não existirem
-    initDatabaseSchema($pdo);
+    initDatabaseSchema($conn);
 
-    return $pdo;
+    return $conn;
 }
 
-function initDatabaseSchema($pdo) {
-    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-    $autoInc = ($driver === 'sqlite') ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'INT AUTO_INCREMENT PRIMARY KEY';
-    $decimalType = ($driver === 'sqlite') ? 'REAL' : 'DECIMAL(10,2)';
-    $nowDefault = ($driver === 'sqlite') ? "CURRENT_TIMESTAMP" : "CURRENT_TIMESTAMP";
-
+function initDatabaseSchema($conn) {
     // Tabela de Clientes (Oficina de Motos)
     $sqlClientes = "CREATE TABLE IF NOT EXISTS clientes (
-        id $autoInc,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         nome VARCHAR(100) NOT NULL,
         cpf VARCHAR(14) NOT NULL,
         telefone VARCHAR(20) NOT NULL,
@@ -54,50 +46,49 @@ function initDatabaseSchema($pdo) {
         placa_moto VARCHAR(10) NOT NULL,
         ano_moto VARCHAR(4),
         observacoes TEXT,
-        created_at TIMESTAMP DEFAULT $nowDefault
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )";
 
     // Tabela de Produtos (Peças e Insumos de Motos)
     $sqlProdutos = "CREATE TABLE IF NOT EXISTS produtos (
-        id $autoInc,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         codigo_sku VARCHAR(30) UNIQUE NOT NULL,
         nome VARCHAR(100) NOT NULL,
         categoria VARCHAR(50) NOT NULL,
-        preco_custo $decimalType NOT NULL,
-        preco_venda $decimalType NOT NULL,
+        preco_custo DECIMAL(10,2) NOT NULL,
+        preco_venda DECIMAL(10,2) NOT NULL,
         quantidade_estoque INT NOT NULL DEFAULT 0,
         quantidade_minima INT NOT NULL DEFAULT 5,
-        created_at TIMESTAMP DEFAULT $nowDefault
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )";
 
     // Tabela de Vendas / Ordens de Serviço
     $sqlVendas = "CREATE TABLE IF NOT EXISTS vendas (
-        id $autoInc,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         numero_os VARCHAR(20) NOT NULL,
         cliente_id INT NOT NULL,
         produto_id INT NOT NULL,
         quantidade INT NOT NULL,
-        valor_unitario $decimalType NOT NULL,
-        valor_total $decimalType NOT NULL,
-        data_venda TIMESTAMP DEFAULT $nowDefault,
+        valor_unitario DECIMAL(10,2) NOT NULL,
+        valor_total DECIMAL(10,2) NOT NULL,
+        data_venda TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         status VARCHAR(30) DEFAULT 'Concluída'
     )";
 
-    $pdo->exec($sqlClientes);
-    $pdo->exec($sqlProdutos);
-    $pdo->exec($sqlVendas);
+    $conn->query($sqlClientes);
+    $conn->query($sqlProdutos);
+    $conn->query($sqlVendas);
 
     // Se estiver vazio, popula com dados iniciais para testes
-    seedInitialData($pdo);
+    seedInitialData($conn);
 }
 
-function seedInitialData($pdo) {
-    $stmt = $pdo->query("SELECT COUNT(*) as total FROM clientes");
-    $count = $stmt->fetch()['total'];
+function seedInitialData($conn) {
+    $result =$conn->query("SELECT COUNT(*) as total FROM clientes");
+    $row =$result->fetch_assoc();
 
-    if ($count == 0) {
-        // Inserir Clientes de Exemplo
-        $pdo->exec("INSERT INTO clientes (nome, cpf, telefone, email, modelo_moto, placa_moto, ano_moto, observacoes) VALUES
+    if ((int)$row['total'] === 0) {         // Inserir Clientes de Exemplo
+    $conn->query("INSERT INTO clientes (nome, cpf, telefone, email, modelo_moto, placa_moto, ano_moto, observacoes) VALUES
             ('Carlos Eduardo Silva', '123.456.789-00', '(11) 98765-4321', 'carlos.silva@email.com', 'Honda CG 160 Titan', 'ABC-1D23', '2022', 'Revisão periódica dos 10.000km'),
             ('Mariana Oliveira Rocha', '987.654.321-11', '(11) 91234-5678', 'mariana.rocha@email.com', 'Yamaha Fazer FZ25', 'XYZ-9K88', '2023', 'Troca de óleo e alinhamento'),
             ('Roberto Mendes Ferreira', '456.789.123-22', '(11) 99887-7665', 'roberto.mendes@email.com', 'Honda Biz 125', 'MNO-3P45', '2020', 'Pastilha de freio gasta'),
@@ -105,7 +96,7 @@ function seedInitialData($pdo) {
         ");
 
         // Inserir Produtos de Exemplo
-        $pdo->exec("INSERT INTO produtos (codigo_sku, nome, categoria, preco_custo, preco_venda, quantidade_estoque, quantidade_minima) VALUES
+        $conn->query("INSERT INTO produtos (codigo_sku, nome, categoria, preco_custo, preco_venda, quantidade_estoque, quantidade_minima) VALUES
             ('PEC-001', 'Óleo Mobil Super Moto 20W50 1L', 'Lubrificantes', 22.50, 42.00, 45, 10),
             ('PEC-002', 'Pastilha de Freio Dianteira Cobreq (Titan 160)', 'Freios', 18.00, 38.50, 3, 5),
             ('PEC-003', 'Kit Relação Transmissão DID com Retentor', 'Transmissão', 120.00, 240.00, 2, 4),
@@ -115,7 +106,7 @@ function seedInitialData($pdo) {
         ");
 
         // Inserir Vendas de Exemplo
-        $pdo->exec("INSERT INTO vendas (numero_os, cliente_id, produto_id, quantidade, valor_unitario, valor_total, status) VALUES
+        $conn->query("INSERT INTO vendas (numero_os, cliente_id, produto_id, quantidade, valor_unitario, valor_total, status) VALUES
             ('OS-2026-001', 1, 1, 2, 42.00, 84.00, 'Concluída'),
             ('OS-2026-002', 2, 2, 1, 38.50, 38.50, 'Concluída'),
             ('OS-2026-003', 3, 3, 1, 240.00, 240.00, 'Concluída'),

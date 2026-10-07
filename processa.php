@@ -2,7 +2,91 @@
 // Processamento Principal e Roteamento via switch...case
 require_once 'db.php';
 
-$pdo = getDBConnection();
+class MysqliCompatResult {
+    private $result;
+
+    public function __construct($result) {
+        $this->result = $result;
+    }
+
+    public function fetchAll($mode = MYSQLI_ASSOC) {
+        return $this->result->fetch_all($mode);
+    }
+
+    public function fetch($mode = MYSQLI_ASSOC) {
+        return $this->result->fetch_array($mode);
+    }
+
+    public function fetch_assoc() {
+        return $this->result->fetch_assoc();
+    }
+
+    public function fetchColumn() {
+        $row = $this->result->fetch_row();
+        return $row ? $row[0] : false;
+    }
+}
+
+class MysqliCompatStatement {
+    private $stmt;
+
+    public function __construct($stmt) {
+        $this->stmt = $stmt;
+    }
+
+    public function execute($params = []) {
+        if (!empty($params)) {
+            $types = '';
+            $bindValues = [];
+
+            foreach ($params as $key => $value) {
+                $types .= (is_int($value) || is_float($value) || is_double($value)) ? 'd' : 's';
+                $bindValues[] = &$params[$key];
+            }
+
+            call_user_func_array([$this->stmt, 'bind_param'], array_merge([$types], $bindValues));
+        }
+
+        $executed = $this->stmt->execute();
+        if ($executed === false) {
+            throw new RuntimeException('Erro ao executar statement: ' . $this->stmt->error);
+        }
+
+        return $executed;
+    }
+
+    public function __call($name, $arguments) {
+        return $this->stmt->$name(...$arguments);
+    }
+}
+
+class MysqliCompat {
+    private $conn;
+
+    public function __construct($conn) {
+        $this->conn = $conn;
+    }
+
+    public function query($sql) {
+        $result = $this->conn->query($sql);
+        if ($result === false) {
+            throw new RuntimeException('Erro na consulta: ' . $this->conn->error);
+        }
+
+        return new MysqliCompatResult($result);
+    }
+
+    public function prepare($sql) {
+        $stmt = $this->conn->prepare($sql);
+        if ($stmt === false) {
+            throw new RuntimeException('Erro ao preparar statement: ' . $this->conn->error);
+        }
+
+        return new MysqliCompatStatement($stmt);
+    }
+}
+
+$pdo = new MysqliCompat(getDBConnection());
 $mensagemFeedback = '';
 $tipoFeedback = '';
 
@@ -84,42 +168,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao'])) {
             }
             break;
 
-        // --- AÇÃO 5: SALVAR VENDA / ORDEM DE SERVIÇO ---
-        case 'salvar_venda':
-            $cliente_id = intval($_POST['cliente_id'] ?? 0);
-            $produto_id = intval($_POST['produto_id'] ?? 0);
-            $quantidade = intval($_POST['quantidade'] ?? 1);
-            $valor_unitario = floatval($_POST['valor_unitario'] ?? 0);
+// --- AÇÃO 5: SALVAR VENDA / ORDEM DE SERVIÇO ---
+case 'salvar_venda':
+    $cliente_id     = intval($_POST['cliente_id'] ?? 0);
+    $produto_id     = intval($_POST['produto_id'] ?? 0);
+    $quantidade     = intval($_POST['quantidade'] ?? 1);
+    $valor_unitario = floatval($_POST['valor_unitario'] ?? 0);
 
-            if ($cliente_id > 0 && $produto_id > 0 && $quantidade > 0) {
-                // Verificar Estoque Atual
-                $stmtProd = $pdo->prepare("SELECT quantidade_estoque, nome FROM produtos WHERE id = ?");
-                $stmtProd->execute([$produto_id]);
-                $prod = $stmtProd->fetch();
+    if ($cliente_id > 0 && $produto_id > 0 && $quantidade > 0) {
+        // Verificar Estoque Atual
+        $stmtProd = $pdo->prepare("SELECT quantidade_estoque, nome FROM produtos WHERE id = ?");
+        $stmtProd->execute([$produto_id]);
 
-                if ($prod && $prod['quantidade_estoque'] >= $quantidade) {
-                    $numOS = 'OS-' . date('Y') . '-' . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
-                    $valor_total = $quantidade * $valor_unitario;
+        /** @var array<string,mixed>|false $prod */
+        $prod = $stmtProd->fetch(PDO::FETCH_ASSOC);
 
-                    // Inserir Venda
-                    $stmtVenda = $pdo->prepare("INSERT INTO vendas (numero_os, cliente_id, produto_id, quantidade, valor_unitario, valor_total, status) VALUES (?, ?, ?, ?, ?, ?, 'Concluída')");
-                    $stmtVenda->execute([$numOS, $cliente_id, $produto_id, $quantidade, $valor_unitario, $valor_total]);
+        if (is_array($prod) && (int)$prod['quantidade_estoque'] >= $quantidade) {
+            $numOS = 'OS-' . date('Y') . '-' . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT);
+            $valor_total = $quantidade * $valor_unitario;
 
-                    // Dar baixa no estoque do produto
-                    $stmtBaixa = $pdo->prepare("UPDATE produtos SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?");
-                    $stmtBaixa->execute([$quantidade, $produto_id]);
+            // Inserir Venda
+            $stmtVenda = $pdo->prepare("INSERT INTO vendas (numero_os, cliente_id, produto_id, quantidade, valor_unitario, valor_total, status) VALUES (?, ?, ?, ?, ?, ?, 'Concluída')");
+            $stmtVenda->execute([$numOS, $cliente_id, $produto_id, $quantidade, $valor_unitario, $valor_total]);
 
-                    $mensagemFeedback = "Venda/OS <strong>$numOS</strong> lançada com sucesso! Baixa de $quantidade un. realizada.";
-                    $tipoFeedback = "success";
-                } else {
-                    $mensagemFeedback = "Estoque insuficiente para " . htmlspecialchars($prod['nome'] ?? 'esta peça') . "! Qtd em estoque: " . ($prod['quantidade_estoque'] ?? 0);
-                    $tipoFeedback = "danger";
-                }
-            } else {
-                $mensagemFeedback = "Selecione um cliente, um produto e informe uma quantidade válida!";
-                $tipoFeedback = "danger";
-            }
-            break;
+            // Dar baixa no estoque do produto
+            $stmtBaixa = $pdo->prepare("UPDATE produtos SET quantidade_estoque = quantidade_estoque - ? WHERE id = ?");
+            $stmtBaixa->execute([$quantidade, $produto_id]);
+
+            $mensagemFeedback = "Venda/OS <strong>$numOS</strong> lançada com sucesso! Baixa de $quantidade un. realizada.";
+            $tipoFeedback = "success";
+        } else {
+            $nomePeca   = is_array($prod) ? (string)$prod['nome'] : 'esta peça';
+            $qtdEstoque = is_array($prod) ? (int)$prod['quantidade_estoque'] : 0;
+
+            $mensagemFeedback = "Estoque insuficiente para " . htmlspecialchars($nomePeca) . "! Qtd em estoque: " . $qtdEstoque;
+            $tipoFeedback = "danger";
+        }
+    } else {
+        $mensagemFeedback = "Selecione um cliente, um produto e informe uma quantidade válida!";
+        $tipoFeedback = "danger";
+    }
+    break;
 
         // --- AÇÃO 6: ATUALIZAR REPOSIÇÃO DE ESTOQUE ---
         case 'atualizar_estoque':
