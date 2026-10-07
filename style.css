@@ -1,85 +1,578 @@
+/* ==========================================================================
+   SISTEMA DE MANUTENÇÃO DE MOTOS EM PHP - GUIA DE ESTILO E TEMAS
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    /* Cores Globais Base */
+    --bg-body: #0f172a;
+    --bg-container: #ffffff;
+    --bg-card: #f8fafc;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --border-color: #e2e8f0;
+    --shadow-main: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --font-base-size: 16px;
+
+    /* Cores Temáticas Obrigatórias dos 6 Botões */
+    --color-green: #22c55e;
+    --color-green-dark: #16a34a;
+    --color-green-light: #dcfce7;
+
+    --color-blue: #3b82f6;
+    --color-blue-dark: #2563eb;
+    --color-blue-light: #dbeafe;
+
+    --color-orange: #f97316;
+    --color-orange-dark: #ea580c;
+    --color-orange-light: #ffedd5;
+
+    --color-red: #ef4444;
+    --color-red-dark: #dc2626;
+    --color-red-light: #fee2e2;
+
+    --color-purple: #a855f7;
+    --color-purple-dark: #9333ea;
+    --color-purple-light: #f3e8ff;
+
+    --color-teal: #06b6d4;
+    --color-teal-dark: #0891b2;
+    --color-teal-light: #cffaff;
+}
+
+/* Modo Escuro (Persistido via Session/Cookie) */
+body.dark-mode {
+    --bg-body: #090d16;
+    --bg-container: #1e293b;
+    --bg-card: #0f172a;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-color: #334155;
+    --shadow-main: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+
+    --color-green-light: rgba(34, 197, 94, 0.15);
+    --color-blue-light: rgba(59, 130, 246, 0.15);
+    --color-orange-light: rgba(249, 115, 22, 0.15);
+    --color-red-light: rgba(239, 68, 68, 0.15);
+    --color-purple-light: rgba(168, 85, 247, 0.15);
+    --color-teal-light: rgba(6, 182, 212, 0.15);
+}
+
+/* Acessibilidade: Tamanho de Fonte */
+body.font-grande { font-size: 18px; }
+body.font-extra-grande { font-size: 20px; }
+
+/* Reset e Estilos Globais */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
-    background-color: #1b264f; 
+    background: var(--bg-body);
+    color: var(--text-main);
+    min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    padding: 20px;
+    align-items: flex-start;
+    padding: 30px 15px;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.container {
-    background-color: #ffffff;
-    border-radius: 20px;
-    padding: 40px;
+.main-wrapper {
     width: 100%;
-    max-width: 800px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    max-width: 1100px;
+    background: var(--bg-container);
+    border-radius: 24px;
+    padding: 35px;
+    box-shadow: var(--shadow-main);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+/* Header */
+.header-title {
     text-align: center;
+    margin-bottom: 25px;
 }
 
-h1 {
-    color: #1b264f;
-    font-size: 2.2rem;
-    margin-bottom: 10px;
+.header-title h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
 
-.subtitle {
-    color: #666;
-    margin-bottom: 30px;
-    font-size: 1.1rem;
+.header-title .subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-top: 6px;
 }
 
+/* Grid de Botões (Navegação Principal do Switch Case) */
 .button-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
     margin-bottom: 30px;
 }
 
-.btn {
-    padding: 20px;
+.btn-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 12px;
     border: none;
-    border-radius: 10px;
-    color: white;
-    font-size: 1.1rem;
-    font-weight: bold;
+    border-radius: 14px;
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: transform 0.2s, filter 0.2s;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, filter 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 
-.btn:hover {
+.btn-nav i {
+    font-size: 1.4rem;
+}
+
+.btn-nav:hover {
     transform: translateY(-3px);
+    filter: brightness(1.1);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.btn-nav.active {
+    outline: 3px solid var(--text-main);
+    outline-offset: 2px;
+}
+
+/* Cores específicas dos botões */
+.btn-green { background: linear-gradient(135deg, var(--color-green-dark), var(--color-green)); }
+.btn-blue { background: linear-gradient(135deg, var(--color-blue-dark), var(--color-blue)); }
+.btn-orange { background: linear-gradient(135deg, var(--color-orange-dark), var(--color-orange)); }
+.btn-red { background: linear-gradient(135deg, var(--color-red-dark), var(--color-red)); }
+.btn-purple { background: linear-gradient(135deg, var(--color-purple-dark), var(--color-purple)); }
+.btn-teal { background: linear-gradient(135deg, var(--color-teal-dark), var(--color-teal)); }
+
+/* Caixas de Alerta Feedback */
+.alert {
+    padding: 14px 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.alert-success { background: var(--color-green-light); color: var(--color-green-dark); border: 1px solid var(--color-green); }
+.alert-warning { background: var(--color-orange-light); color: var(--color-orange-dark); border: 1px solid var(--color-orange); }
+.alert-danger { background: var(--color-red-light); color: var(--color-red-dark); border: 1px solid var(--color-red); }
+
+/* Módulo Container Genérico */
+.module-container {
+    border-radius: 18px;
+    padding: 28px;
+    background: var(--bg-card);
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 1. Módulo Verde - Cadastro de Clientes */
+.theme-green {
+    border-color: var(--color-green);
+    background: linear-gradient(180deg, var(--color-green-light) 0%, var(--bg-card) 120px);
+}
+.theme-green .module-header h2 { color: var(--color-green-dark); }
+.theme-green .btn-action { background: var(--color-green-dark); color: #fff; }
+.theme-green .btn-action:hover { background: var(--color-green); }
+.theme-green input:focus, .theme-green select:focus, .theme-green textarea:focus {
+    border-color: var(--color-green);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+}
+
+/* 2. Módulo Azul - Cadastro de Produtos */
+.theme-blue {
+    border-color: var(--color-blue);
+    background: linear-gradient(180deg, var(--color-blue-light) 0%, var(--bg-card) 120px);
+}
+.theme-blue .module-header h2 { color: var(--color-blue-dark); }
+.theme-blue .btn-action { background: var(--color-blue-dark); color: #fff; }
+.theme-blue .btn-action:hover { background: var(--color-blue); }
+.theme-blue input:focus, .theme-blue select:focus, .theme-blue textarea:focus {
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+/* 3. Módulo Laranja - Relatório de Vendas */
+.theme-orange {
+    border-color: var(--color-orange);
+    background: linear-gradient(180deg, var(--color-orange-light) 0%, var(--bg-card) 120px);
+}
+.theme-orange .module-header h2 { color: var(--color-orange-dark); }
+.theme-orange .btn-action { background: var(--color-orange-dark); color: #fff; }
+.theme-orange .btn-action:hover { background: var(--color-orange); }
+
+/* 4. Módulo Vermelho - Controle de Estoque */
+.theme-red {
+    border-color: var(--color-red);
+    background: linear-gradient(180deg, var(--color-red-light) 0%, var(--bg-card) 120px);
+}
+.theme-red .module-header h2 { color: var(--color-red-dark); }
+.theme-red .btn-action { background: var(--color-red-dark); color: #fff; }
+.theme-red .btn-action:hover { background: var(--color-red); }
+
+/* 5. Módulo Roxo - Configurações */
+.theme-purple {
+    border-color: var(--color-purple);
+    background: linear-gradient(180deg, var(--color-purple-light) 0%, var(--bg-card) 120px);
+}
+.theme-purple .module-header h2 { color: var(--color-purple-dark); }
+.theme-purple .btn-action { background: var(--color-purple-dark); color: #fff; }
+
+/* 6. Módulo Ciano - Sair do Sistema */
+.theme-teal {
+    border-color: var(--color-teal);
+    background: linear-gradient(180deg, var(--color-teal-light) 0%, var(--bg-card) 120px);
+}
+.theme-teal .module-header h2 { color: var(--color-teal-dark); }
+.theme-teal .btn-action { background: var(--color-teal-dark); color: #fff; }
+
+/* Cabeçalho do Módulo */
+.module-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.module-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.module-badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: rgba(255,255,255,0.7);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+/* Formulários */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-container);
+    color: var(--text-main);
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Botões de Ação nos Formulários */
+.btn-action {
+    padding: 12px 24px;
+    border-radius: 10px;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.15s ease, filter 0.15s ease;
+    text-decoration: none;
+}
+
+.btn-action:hover {
+    transform: translateY(-2px);
     filter: brightness(1.1);
 }
 
-.btn-green { background-color: #22c55e; }
-.btn-blue { background-color: #3b82f6; }
-.btn-orange { background-color: #f97316; }
-.btn-red { background-color: #ef4444; }
-.btn-purple { background-color: #a855f7; }
-.btn-teal { background-color: #06b6d4; }
-
-.result-box {
-    background-color: #f4f4f5;
-    padding: 20px;
-    border-radius: 10px;
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #000;
-    margin-bottom: 30px;
-    border-left: 8px solid #1b264f;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+.btn-secondary {
+    background: var(--border-color);
+    color: var(--text-main);
+}
+.btn-danger {
+    background: var(--color-red-dark);
+    color: #ffffff;
 }
 
-footer p {
-    color: #888;
-    font-size: 0.9rem;
+/* Cartões de Indicadores Financeiros / Métricas */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 25px;
+}
+
+.kpi-card {
+    background: var(--bg-container);
+    border-radius: 14px;
+    padding: 18px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+
+.kpi-card span {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.kpi-card h3 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-top: 6px;
+    color: var(--text-main);
+}
+
+.kpi-card.orange h3 { color: var(--color-orange-dark); }
+.kpi-card.green h3 { color: var(--color-green-dark); }
+.kpi-card.red h3 { color: var(--color-red-dark); }
+
+/* Tabelas de Dados Estilizadas */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 15px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-container);
+    text-align: left;
+    font-size: 0.92rem;
+}
+
+.custom-table th {
+    padding: 14px 16px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.theme-green .custom-table th { background: var(--color-green-dark); }
+.theme-blue .custom-table th { background: var(--color-blue-dark); }
+.theme-orange .custom-table th { background: var(--color-orange-dark); }
+.theme-red .custom-table th { background: var(--color-red-dark); }
+
+.custom-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+
+.custom-table tr:last-child td {
+    border-bottom: none;
+}
+
+.custom-table tr:hover {
+    background: rgba(0,0,0,0.02);
+}
+
+body.dark-mode .custom-table tr:hover {
+    background: rgba(255,255,255,0.03);
+}
+
+/* Linha de alerta de estoque crítico (Módulo 4) */
+.table-row-danger {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    font-weight: 600;
+}
+.table-row-danger td {
+    color: var(--color-red-dark) !important;
+}
+
+/* Badges de Status */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-normal { background: var(--color-green-light); color: var(--color-green-dark); }
+.status-critico { background: var(--color-red-light); color: var(--color-red-dark); animation: pulse 2s infinite; }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Painel de Configurações (Toggle Switches) */
+.settings-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: var(--bg-container);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.setting-info h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.setting-info p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Modal de Confirmação de Sair */
+.modal-logout {
+    text-align: center;
+    padding: 20px;
+}
+
+.modal-logout i {
+    font-size: 3.5rem;
+    color: var(--color-teal);
+    margin-bottom: 15px;
+}
+
+.modal-logout h3 {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+    color: var(--text-main);
+}
+
+.modal-logout p {
+    color: var(--text-muted);
+    margin-bottom: 25px;
+}
+
+.logout-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    margin-top: 35px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* Estilos de Impressão (@media print) para o Relatório de Vendas */
+@media print {
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+    }
+
+    .main-wrapper {
+        box-shadow: none !important;
+        border: none !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+
+    .button-grid,
+    .btn-action,
+    .form-grid,
+    footer,
+    .no-print {
+        display: none !important;
+    }
+
+    .module-container {
+        border: none !important;
+        background: none !important;
+        padding: 0 !important;
+    }
+
+    .print-header {
+        display: block !important;
+        text-align: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 15px;
+    }
+
+    .custom-table th {
+        background-color: #f1f5f9 !important;
+        color: #000 !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    .custom-table td {
+        border: 1px solid #cbd5e1 !important;
+        color: #000 !important;
+    }
 }

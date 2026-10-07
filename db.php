@@ -1,0 +1,125 @@
+<?php
+// Configuração de Conexão com o Banco de Dados (MySQL com Fallback SQLite)
+
+function getDBConnection() {
+    static $pdo = null;
+    if ($pdo !== null) {
+        return $pdo;
+    }
+
+    $host = '127.0.0.1';
+    $dbName = 'oficina_motos';
+    $user = 'root';
+    $pass = '';
+
+    try {
+        // Tenta conectar ao MySQL local (XAMPP / WampServer)
+        $pdo = new PDO("mysql:host=$host;charset=utf8mb4", $user, $pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+        
+        // Cria o banco de dados se não existir
+        $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        $pdo->exec("USE `$dbName` ");
+    } catch (PDOException $e) {
+        // Se o MySQL falhar, usa SQLite local como fallback automático de desenvolvimento
+        $sqliteFile = __DIR__ . '/oficina_motos.db';
+        $pdo = new PDO("sqlite:" . $sqliteFile, null, null, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]);
+    }
+
+    // Inicializa as tabelas se ainda não existirem
+    initDatabaseSchema($pdo);
+
+    return $pdo;
+}
+
+function initDatabaseSchema($pdo) {
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    $autoInc = ($driver === 'sqlite') ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'INT AUTO_INCREMENT PRIMARY KEY';
+    $decimalType = ($driver === 'sqlite') ? 'REAL' : 'DECIMAL(10,2)';
+    $nowDefault = ($driver === 'sqlite') ? "CURRENT_TIMESTAMP" : "CURRENT_TIMESTAMP";
+
+    // Tabela de Clientes (Oficina de Motos)
+    $sqlClientes = "CREATE TABLE IF NOT EXISTS clientes (
+        id $autoInc,
+        nome VARCHAR(100) NOT NULL,
+        cpf VARCHAR(14) NOT NULL,
+        telefone VARCHAR(20) NOT NULL,
+        email VARCHAR(100),
+        modelo_moto VARCHAR(80) NOT NULL,
+        placa_moto VARCHAR(10) NOT NULL,
+        ano_moto VARCHAR(4),
+        observacoes TEXT,
+        created_at TIMESTAMP DEFAULT $nowDefault
+    )";
+
+    // Tabela de Produtos (Peças e Insumos de Motos)
+    $sqlProdutos = "CREATE TABLE IF NOT EXISTS produtos (
+        id $autoInc,
+        codigo_sku VARCHAR(30) UNIQUE NOT NULL,
+        nome VARCHAR(100) NOT NULL,
+        categoria VARCHAR(50) NOT NULL,
+        preco_custo $decimalType NOT NULL,
+        preco_venda $decimalType NOT NULL,
+        quantidade_estoque INT NOT NULL DEFAULT 0,
+        quantidade_minima INT NOT NULL DEFAULT 5,
+        created_at TIMESTAMP DEFAULT $nowDefault
+    )";
+
+    // Tabela de Vendas / Ordens de Serviço
+    $sqlVendas = "CREATE TABLE IF NOT EXISTS vendas (
+        id $autoInc,
+        numero_os VARCHAR(20) NOT NULL,
+        cliente_id INT NOT NULL,
+        produto_id INT NOT NULL,
+        quantidade INT NOT NULL,
+        valor_unitario $decimalType NOT NULL,
+        valor_total $decimalType NOT NULL,
+        data_venda TIMESTAMP DEFAULT $nowDefault,
+        status VARCHAR(30) DEFAULT 'Concluída'
+    )";
+
+    $pdo->exec($sqlClientes);
+    $pdo->exec($sqlProdutos);
+    $pdo->exec($sqlVendas);
+
+    // Se estiver vazio, popula com dados iniciais para testes
+    seedInitialData($pdo);
+}
+
+function seedInitialData($pdo) {
+    $stmt = $pdo->query("SELECT COUNT(*) as total FROM clientes");
+    $count = $stmt->fetch()['total'];
+
+    if ($count == 0) {
+        // Inserir Clientes de Exemplo
+        $pdo->exec("INSERT INTO clientes (nome, cpf, telefone, email, modelo_moto, placa_moto, ano_moto, observacoes) VALUES
+            ('Carlos Eduardo Silva', '123.456.789-00', '(11) 98765-4321', 'carlos.silva@email.com', 'Honda CG 160 Titan', 'ABC-1D23', '2022', 'Revisão periódica dos 10.000km'),
+            ('Mariana Oliveira Rocha', '987.654.321-11', '(11) 91234-5678', 'mariana.rocha@email.com', 'Yamaha Fazer FZ25', 'XYZ-9K88', '2023', 'Troca de óleo e alinhamento'),
+            ('Roberto Mendes Ferreira', '456.789.123-22', '(11) 99887-7665', 'roberto.mendes@email.com', 'Honda Biz 125', 'MNO-3P45', '2020', 'Pastilha de freio gasta'),
+            ('Fernanda Souza Lima', '321.654.987-33', '(11) 97654-3210', 'fernanda.lima@email.com', 'Kawasaki Ninja 400', 'KWA-4N00', '2024', 'Troca de kit relação completo')
+        ");
+
+        // Inserir Produtos de Exemplo
+        $pdo->exec("INSERT INTO produtos (codigo_sku, nome, categoria, preco_custo, preco_venda, quantidade_estoque, quantidade_minima) VALUES
+            ('PEC-001', 'Óleo Mobil Super Moto 20W50 1L', 'Lubrificantes', 22.50, 42.00, 45, 10),
+            ('PEC-002', 'Pastilha de Freio Dianteira Cobreq (Titan 160)', 'Freios', 18.00, 38.50, 3, 5),
+            ('PEC-003', 'Kit Relação Transmissão DID com Retentor', 'Transmissão', 120.00, 240.00, 2, 4),
+            ('PEC-004', 'Pneu Traseiro Pirelli City Cross 110/80-18', 'Pneus', 180.00, 310.00, 12, 3),
+            ('PEC-005', 'Vela de Ignição Iridium NGK CPR8EAIX-9', 'Elétrica & Motor', 45.00, 85.00, 25, 8),
+            ('PEC-006', 'Filtro de Ar Tecfil CG 160 Titan', 'Filtros', 12.00, 28.00, 1, 6)
+        ");
+
+        // Inserir Vendas de Exemplo
+        $pdo->exec("INSERT INTO vendas (numero_os, cliente_id, produto_id, quantidade, valor_unitario, valor_total, status) VALUES
+            ('OS-2026-001', 1, 1, 2, 42.00, 84.00, 'Concluída'),
+            ('OS-2026-002', 2, 2, 1, 38.50, 38.50, 'Concluída'),
+            ('OS-2026-003', 3, 3, 1, 240.00, 240.00, 'Concluída'),
+            ('OS-2026-004', 4, 5, 2, 85.00, 170.00, 'Concluída')
+        ");
+    }
+}
